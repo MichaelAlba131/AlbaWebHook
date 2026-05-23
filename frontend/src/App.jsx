@@ -137,20 +137,20 @@ eventSource.onmessage = (event) => {
         
         // Handle different SSE message types from backend
         if (data.type === 'new_request' && data.request) {
-          // New webhook arrived - create new reference for immutability
-          const newRequest = { ...data.request };
+          const newReq = data.request;
           
           // Update requests list with proper immutability (create new array)
-          setRequests((prev) => [newRequest, ...prev]);
-          
-          // Auto-select the new request:
-          // - If no request is selected, select the new one
-          // - If viewing the same request ID (same webhook repeated), update it
-          // - Otherwise keep the current selection
-          const currentSelectedId = selectedRequest?.id;
-          if (!currentSelectedId || currentSelectedId === newRequest.id) {
-            setSelectedRequest(newRequest);
-          }
+          setRequests((prev) => [newReq, ...prev]);
+
+          // Forces the update if it's the request being viewed:
+          // The spread {...newReq} creates a new object reference,
+          // which forces React to detect the change
+          setSelectedRequest((prev) => {
+            if (!prev || prev.id === newReq.id) {
+              return { ...newReq };
+            }
+            return prev;
+          });
         } else if (data.type === 'initial' && data.requests) {
           // Initial batch of pending requests - create new references
           const initialRequests = data.requests.map(req => ({ ...req }));
@@ -163,15 +163,16 @@ eventSource.onmessage = (event) => {
           console.log('SSE connected to bin:', data.binId);
         } else {
           // Fallback: treat as direct request (legacy format)
-          // Create new object reference to ensure React detects the change
           const request = { ...data };
           setRequests((prev) => [request, ...prev]);
           
-          // Auto-select the new request if nothing is selected
-          const currentSelectedId = selectedRequest?.id;
-          if (!currentSelectedId || currentSelectedId === request.id) {
-            setSelectedRequest(request);
-          }
+          // Force update using functional form to get fresh state
+          setSelectedRequest((prev) => {
+            if (!prev || prev.id === request.id) {
+              return { ...request };
+            }
+            return prev;
+          });
         }
       } catch (error) {
         console.error('Failed to parse SSE data:', error);
