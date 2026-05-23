@@ -122,8 +122,8 @@ const connectSSE = (binId) => {
     disconnectSSE();
     setSseStatus('connecting');
     
-    // Pass session ID as query param for SSE (browser EventSource doesn't support custom headers)
-const sessionId = getSessionId();
+// Pass session ID as query param for SSE (browser EventSource doesn't support custom headers)
+    const sessionId = getSessionId();
     const eventSource = new EventSource(`${apiUrl}/api/bins/${binId}/stream?sessionId=${encodeURIComponent(sessionId)}`);
     sseRef.current = eventSource;
 
@@ -137,23 +137,9 @@ const sessionId = getSessionId();
         
         // Handle different SSE message types from backend
         if (data.type === 'new_request' && data.request) {
-          // New webhook request arrived - extract just the request data
-          // Create DEEP copy with new timestamp as unique identifier to force React re-render
-          const newRequest = { 
-            ...data.request, 
-            timestamp: data.request.timestamp || new Date().toISOString(),
-            _sseKey: `${data.request.id}-${Date.now()}` // Unique key for React
-          };
-          console.log('SSE: New request received. ID:', newRequest.id, 'Timestamp:', newRequest.timestamp);
-          
-          // Update requests list
-          setRequests((prev) => [newRequest, ...prev]);
-          
-          // Auto-select newest request if no request is currently selected
-          // OR if the current selected request is NOT the newest one
-          if (!selectedRequest || (requests.length > 0 && requests[0].id !== newRequest.id)) {
-            setSelectedRequest(newRequest);
-          }
+          // New webhook arrived - trigger full page reload for immediate update
+          console.log('SSE: New request received. Reloading page...');
+          window.location.reload();
         } else if (data.type === 'initial' && data.requests) {
           // Initial batch of pending requests - create new references
           const initialRequests = data.requests.map(req => ({ ...req }));
