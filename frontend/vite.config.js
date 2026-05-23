@@ -5,6 +5,7 @@ export default defineConfig({
   plugins: [react()],
   server: {
     port: 5173,
+    // In dev, proxy API calls to local backend
     proxy: {
       '/api': {
         target: 'http://localhost:3000',
@@ -16,7 +17,7 @@ export default defineConfig({
       },
     },
   },
-  // Use relative paths in build for better compatibility
+  // Use relative paths in build
   base: './',
   build: {
     outDir: 'dist',

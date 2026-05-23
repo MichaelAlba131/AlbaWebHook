@@ -25,50 +25,41 @@ WebhooksAlba/
 └── RAILWAY.md
 ```
 
-## Deployment (Single Service with Nginx Proxy)
+## Deployment (Two Separate Services)
 
-Deploy the frontend service which proxies to the backend:
+You need **two Railway services** because they're separate containers:
 
-| Setting | Value |
-|---------|-------|
-| Name | `albawebhook` |
-| Root Directory | `frontend` |
-| Build Command | `npm run build` |
-| Start Command | `nginx -g 'daemon off;'` |
-| Port | `80` |
-| Environment Variables | None required (uses `window.location.origin` for dynamic URL) |
-
-### Step 1: Deploy Backend First
+### Step 1: Deploy Backend
 
 1. Go to [Railway](https://railway.app)
 2. Create new project → "Blank project"
-3. Add a service with:
-   - Name: `backend`
-   - Root Directory: `backend`
-   - Build Command: `npm install`
-   - Start Command: `node src/index.js`
-   - Port: `3000`
-4. Copy the backend URL (e.g., `https://albawebhook-backend.up.railway.app`)
+3. Add a service:
+   - **Name**: `backend`
+   - **Root Directory**: `backend`
+   - **Build Command**: `npm install`
+   - **Start Command**: `node src/index.js`
+   - **Port**: `3000`
+4. Copy the **backend URL** (e.g., `https://albawebhook-backend.up.railway.app`)
 
 ### Step 2: Deploy Frontend
 
-1. Add another service with:
-   - Name: `frontend`
-   - Root Directory: `frontend`
-   - Build Command: `npm run build`
-   - Start Command: `nginx -g 'daemon off;'`
-   - Port: `80`
-2. Click Deploy
+1. Add another service:
+   - **Name**: `frontend`
+   - **Root Directory**: `frontend`
+   - **Build Command**: `npm run build`
+   - **Start Command**: `nginx -g 'daemon off;'`
+   - **Port**: `80`
+2. Add environment variable:
+   - **VITE_API_URL**: The backend URL from Step 1 (internal Railway URL)
+3. Click Deploy
 
-### Why This Works
+### Important: Why Set VITE_API_URL?
 
-The updated frontend uses `window.location.origin` as a fallback, which:
-- In development: Uses `http://localhost:5173` (Vite dev server)
-- In production: Automatically uses the Railway domain
+The frontend runs in a **separate container** from the backend. Without the variable:
+- It tries to proxy through Nginx → `http://localhost:3000` → fails (different container)
 
-Nginx proxies:
-- `/api/*` → Backend on port 3000
-- `/hook/*` → Backend on port 3000
+With `VITE_API_URL` set to the backend's Railway URL:
+- Frontend calls the backend directly via Railway's internal networking
 
 ## Verify Deployment
 

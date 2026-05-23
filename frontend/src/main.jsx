@@ -4,7 +4,7 @@ import App from './App';
 import './index.css';
 
 // Get API URL - use environment variable OR fallback to current domain
-// This ensures it works both in dev and after Railway deployment
+// For Railway: VITE_API_URL should be the BACKEND service URL (internal networking)
 const apiUrl = import.meta.env.VITE_API_URL || window.location.origin;
 
 ReactDOM.createRoot(document.getElementById('root')).render(
