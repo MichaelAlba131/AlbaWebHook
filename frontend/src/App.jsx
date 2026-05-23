@@ -314,7 +314,7 @@ return (
             onClick={() => setIsCreating(true)}
             className="btn btn-primary w-full text-sm"
           >
-            + New Bin
+            + New Mock
           </button>
         </div>
 
