@@ -3,9 +3,10 @@ import ReactDOM from 'react-dom/client';
 import App from './App';
 import './index.css';
 
-// Get API URL - use environment variable, or fallback to relative path (nginx proxy)
-// For Railway: If VITE_API_URL is NOT set, use relative /api (which nginx proxies to backend)
-const apiUrl = import.meta.env.VITE_API_URL || '';
+// Get API URL - use environment variable OR fallback to current domain
+// For Railway: VITE_API_URL should be the BACKEND service URL (internal networking)
+// Note: Must set VITE_API_URL in Railway frontend service variables!
+const apiUrl = import.meta.env.VITE_API_URL || window.location.origin;
 
 ReactDOM.createRoot(document.getElementById('root')).render(
   <React.StrictMode>
