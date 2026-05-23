@@ -480,8 +480,8 @@ return (
         )}
       </section>
 
-      {/* Right Panel - Monaco Editor */}
-      <main className="flex-1 flex flex-col bg-background">
+{/* Right Panel - Monaco Editor */}
+      <main className="flex-1 flex flex-col bg-background pb-4">
         {selectedBinId && (
           <>
             <div className="p-3 border-b border-border flex items-center justify-between">
