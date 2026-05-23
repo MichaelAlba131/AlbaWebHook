@@ -14,6 +14,7 @@ RUN npm ci --legacy-peer-deps
 COPY . .
 
 # Build the application
+ARG VITE_API_URL
 ENV VITE_API_URL=$VITE_API_URL
 RUN npm run build
 
