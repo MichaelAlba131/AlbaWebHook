@@ -208,11 +208,17 @@ const createBin = async () => {
         headers: getHeaders(),
         body: JSON.stringify(payload),
       });
-      if (res.ok) {
+if (res.ok) {
         const response = await res.json();
         // Handle both {success, data} and direct bin format
         const newBin = response.data || response;
-        setBins((prev) => [...prev, newBin]);
+        setBins((prev) => {
+          // Check if bin already exists (avoid duplicates)
+          const exists = prev.some(b => b.id === newBin.id);
+          if (exists) return prev;
+          return [...prev, newBin];
+        });
+        // Auto-select the newly created bin
         setSelectedBinId(newBin.id);
         setIsCreating(false);
         setNewBinConfig({ name: '', mockStatusCode: 200, mockBody: '{}' });
