@@ -131,12 +131,33 @@ const connectSSE = (binId) => {
       setSseStatus('connected');
     };
 
-    eventSource.onmessage = (event) => {
+eventSource.onmessage = (event) => {
       try {
-        const newRequest = JSON.parse(event.data);
-        setRequests((prev) => [newRequest, ...prev]);
-        if (!selectedRequest) {
-          setSelectedRequest(newRequest);
+        const data = JSON.parse(event.data);
+        
+        // Handle different SSE message types from backend
+        if (data.type === 'new_request' && data.request) {
+          // New webhook request arrived - extract just the request data
+          const newRequest = data.request;
+          setRequests((prev) => [newRequest, ...prev]);
+          if (!selectedRequest) {
+            setSelectedRequest(newRequest);
+          }
+        } else if (data.type === 'initial' && data.requests) {
+          // Initial batch of pending requests
+          setRequests(data.requests);
+          if (data.requests.length > 0 && !selectedRequest) {
+            setSelectedRequest(data.requests[0]);
+          }
+        } else if (data.type === 'connected') {
+          // Connection established - ignore
+          console.log('SSE connected to bin:', data.binId);
+        } else {
+          // Fallback: treat as direct request (legacy format)
+          setRequests((prev) => [data, ...prev]);
+          if (!selectedRequest) {
+            setSelectedRequest(data);
+          }
         }
       } catch (error) {
         console.error('Failed to parse SSE data:', error);
