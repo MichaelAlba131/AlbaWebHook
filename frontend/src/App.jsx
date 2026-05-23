@@ -131,15 +131,26 @@ const connectSSE = (binId) => {
       setSseStatus('connected');
     };
 
-    eventSource.onmessage = (event) => {
+eventSource.onmessage = (event) => {
       try {
         const data = JSON.parse(event.data);
         
         // Handle different SSE message types from backend
         if (data.type === 'new_request' && data.request) {
-          // New webhook arrived - trigger full page reload for immediate update
-          console.log('SSE: New request received. Reloading page...');
-          window.location.reload();
+          // New webhook arrived - create new reference for immutability
+          const newRequest = { ...data.request };
+          
+          // Update requests list with proper immutability (create new array)
+          setRequests((prev) => [newRequest, ...prev]);
+          
+          // Auto-select the new request:
+          // - If no request is selected, select the new one
+          // - If viewing the same request ID (same webhook repeated), update it
+          // - Otherwise keep the current selection
+          const currentSelectedId = selectedRequest?.id;
+          if (!currentSelectedId || currentSelectedId === newRequest.id) {
+            setSelectedRequest(newRequest);
+          }
         } else if (data.type === 'initial' && data.requests) {
           // Initial batch of pending requests - create new references
           const initialRequests = data.requests.map(req => ({ ...req }));
@@ -155,7 +166,10 @@ const connectSSE = (binId) => {
           // Create new object reference to ensure React detects the change
           const request = { ...data };
           setRequests((prev) => [request, ...prev]);
-          if (!selectedRequest) {
+          
+          // Auto-select the new request if nothing is selected
+          const currentSelectedId = selectedRequest?.id;
+          if (!currentSelectedId || currentSelectedId === request.id) {
             setSelectedRequest(request);
           }
         }
@@ -543,7 +557,8 @@ return (
                   {/* Tabs for different sections */}
                   <div className="flex-1 flex flex-col overflow-hidden">
                     <div className="flex-1 overflow-hidden border-b border-border">
-                      <Editor
+<Editor
+                        key={`body-${selectedRequest?.id}-${selectedRequest?.timestamp}`}
                         height="100%"
                         defaultLanguage="json"
                         theme="vs-dark"
@@ -573,8 +588,9 @@ return (
                       <div className="text-xs text-text-muted p-2 bg-surface border-b border-border">
                         Headers
                       </div>
-                      <div className="h-[calc(100%-28px)] overflow-auto">
+<div className="h-[calc(100%-28px)] overflow-auto">
                         <Editor
+                          key={`headers-${selectedRequest?.id}-${selectedRequest?.timestamp}`}
                           height="100%"
                           defaultLanguage="json"
                           theme="vs-dark"
