@@ -29,20 +29,8 @@ router.all('/hook/:id', (req, res) => {
   // Store the request
   const storedRequest = store.addRequest(id, requestData);
 
-  // Notify SSE clients
-  const clients = store.getSSEClients(id);
-  const sseData = JSON.stringify({
-    type: 'new_request',
-    request: storedRequest,
-  });
-  
-  clients.forEach((clientId) => {
-    // SSE notification is sent via the SSE endpoint
-    // This is handled in the SSE route
-  });
-
-  // Send notification to all connected SSE clients for this bin
-  broadcastToSSEClients(id, storedRequest);
+  // Trigger real-time broadcast to all connected SSE clients
+  store.broadcast(id, storedRequest);
 
   // Respond with mock config
   const statusCode = bin.mockStatusCode || 200;
@@ -57,23 +45,5 @@ router.all('/hook/:id', (req, res) => {
 
   res.status(statusCode).send(mockBody);
 });
-
-// Helper function to broadcast to SSE clients
-function broadcastToSSEClients(binId, request) {
-  const clients = store.getSSEClients(binId);
-  const data = JSON.stringify({
-    type: 'new_request',
-    request: request,
-  });
-  
-  // Store pending notifications to be sent when client connects
-  if (!global.pendingSSE) {
-    global.pendingSSE = new Map();
-  }
-  
-  const pending = global.pendingSSE.get(binId) || [];
-  pending.push(data);
-  global.pendingSSE.set(binId, pending);
-}
 
 export default router;

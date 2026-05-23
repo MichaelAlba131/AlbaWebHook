@@ -4,6 +4,30 @@ import store from '../store/memoryStore.js';
 
 const router = express.Router();
 
+// Set up broadcast callback to send real-time notifications to connected clients
+store.setBroadcastCallback((binId, request) => {
+  const data = JSON.stringify({
+    type: 'new_request',
+    request: request,
+  });
+  
+  // Use global storage for active SSE responses
+  if (!global.sseResponses) {
+    global.sseResponses = new Map();
+  }
+  
+  const binClients = global.sseResponses.get(binId);
+  if (binClients) {
+    binClients.forEach((res) => {
+      try {
+        res.write(`data: ${data}\n\n`);
+      } catch (e) {
+        // Client may have disconnected
+      }
+    });
+  }
+});
+
 // Helper to extract session ID from request headers or query params
 const getSessionId = (req) => {
   // Prefer header (from fetch), fallback to query param (for SSE)
@@ -38,6 +62,15 @@ router.get('/bins/:id/stream', (req, res) => {
   
   // Add client to the bin's SSE clients
   store.addSSEClient(id, clientId);
+  
+  // Register response in global map for real-time broadcasts
+  if (!global.sseResponses) {
+    global.sseResponses = new Map();
+  }
+  if (!global.sseResponses.has(id)) {
+    global.sseResponses.set(id, new Map());
+  }
+  global.sseResponses.get(id).set(clientId, res);
 
   // Send initial connection event
   res.write(`data: ${JSON.stringify({ type: 'connected', binId: id })}\n\n`);
@@ -68,6 +101,10 @@ router.get('/bins/:id/stream', (req, res) => {
   req.on('close', () => {
     store.removeSSEClient(id, clientId);
     clearInterval(heartbeat);
+    // Remove from global map
+    if (global.sseResponses && global.sseResponses.has(id)) {
+      global.sseResponses.get(id).delete(clientId);
+    }
   });
 });
 

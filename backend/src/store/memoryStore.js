@@ -13,6 +13,25 @@ class MemoryStore {
     this.requests = new Map();
     // Map<binId, Set<clientId>> - SSE clients per bin
     this.sseClients = new Map();
+    // Broadcast callback for real-time notifications
+    this.broadcastCallback = null;
+  }
+
+  /**
+   * Set broadcast callback for real-time notifications
+   * @param {function} callback - Function to call with (binId, request) when new request arrives
+   */
+  setBroadcastCallback(callback) {
+    this.broadcastCallback = callback;
+  }
+
+  /**
+   * Trigger broadcast to all connected clients for a bin
+   */
+  broadcast(binId, request) {
+    if (this.broadcastCallback) {
+      this.broadcastCallback(binId, request);
+    }
   }
 
   /**
