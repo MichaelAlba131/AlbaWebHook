@@ -123,7 +123,7 @@ const connectSSE = (binId) => {
     setSseStatus('connecting');
     
     // Pass session ID as query param for SSE (browser EventSource doesn't support custom headers)
-    const sessionId = getSessionId();
+const sessionId = getSessionId();
     const eventSource = new EventSource(`${apiUrl}/api/bins/${binId}/stream?sessionId=${encodeURIComponent(sessionId)}`);
     sseRef.current = eventSource;
 
@@ -131,32 +131,46 @@ const connectSSE = (binId) => {
       setSseStatus('connected');
     };
 
-eventSource.onmessage = (event) => {
+    eventSource.onmessage = (event) => {
       try {
         const data = JSON.parse(event.data);
         
         // Handle different SSE message types from backend
         if (data.type === 'new_request' && data.request) {
           // New webhook request arrived - extract just the request data
-          const newRequest = data.request;
+          // Create DEEP copy with new timestamp as unique identifier to force React re-render
+          const newRequest = { 
+            ...data.request, 
+            timestamp: data.request.timestamp || new Date().toISOString(),
+            _sseKey: `${data.request.id}-${Date.now()}` // Unique key for React
+          };
+          console.log('SSE: New request received. ID:', newRequest.id, 'Timestamp:', newRequest.timestamp);
+          
+          // Update requests list
           setRequests((prev) => [newRequest, ...prev]);
-          if (!selectedRequest) {
+          
+          // Auto-select newest request if no request is currently selected
+          // OR if the current selected request is NOT the newest one
+          if (!selectedRequest || (requests.length > 0 && requests[0].id !== newRequest.id)) {
             setSelectedRequest(newRequest);
           }
         } else if (data.type === 'initial' && data.requests) {
-          // Initial batch of pending requests
-          setRequests(data.requests);
-          if (data.requests.length > 0 && !selectedRequest) {
-            setSelectedRequest(data.requests[0]);
+          // Initial batch of pending requests - create new references
+          const initialRequests = data.requests.map(req => ({ ...req }));
+          setRequests(initialRequests);
+          if (initialRequests.length > 0 && !selectedRequest) {
+            setSelectedRequest(initialRequests[0]);
           }
         } else if (data.type === 'connected') {
           // Connection established - ignore
           console.log('SSE connected to bin:', data.binId);
         } else {
           // Fallback: treat as direct request (legacy format)
-          setRequests((prev) => [data, ...prev]);
+          // Create new object reference to ensure React detects the change
+          const request = { ...data };
+          setRequests((prev) => [request, ...prev]);
           if (!selectedRequest) {
-            setSelectedRequest(data);
+            setSelectedRequest(request);
           }
         }
       } catch (error) {
@@ -522,9 +536,11 @@ return (
               )}
             </div>
 
-            <div className="flex-1 overflow-hidden">
+<div className="flex-1 overflow-hidden">
               {selectedRequest ? (
-                <div className="h-full flex flex-col">
+                <div
+                  key={`${selectedRequest?.id}-${selectedRequest?.timestamp}`}
+                  className="h-full flex flex-col">
                   {/* Request Info Bar */}
                   <div className="p-3 bg-surface border-b border-border flex items-center gap-4">
                     <span className={`text-lg font-bold ${getMethodColor(selectedRequest.method)}`}>
