@@ -14,14 +14,14 @@ router.get('/bins/:id/stream', (req, res) => {
   const { id } = req.params;
   const sessionId = getSessionId(req);
   
-  // Verify ownership before allowing SSE connection
-  const bin = store.getBinByIdAndSession(id, sessionId);
+  // Just verify bin exists (SSE is for real-time viewing, not ownership gate)
+  const bin = store.getBin(id);
 
-  // Check if bin exists and belongs to this session
+  // Check if bin exists (allow any authenticated user to view)
   if (!bin) {
     return res.status(404).json({
       success: false,
-      error: 'Bin not found or not owned by session',
+      error: 'Bin not found',
     });
   }
 

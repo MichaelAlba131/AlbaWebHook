@@ -33,6 +33,16 @@ const getHeaders = () => {
   };
 };
 
+// Validate API URL - warn if running on same origin (likely misconfigured)
+const validateApiUrl = (url) => {
+  // If apiUrl is same as window.location.origin, likely misconfigured
+  if (url === window.location.origin) {
+    console.warn('Warning: API URL is same as frontend origin. Set VITE_API_URL environment variable.');
+    return false;
+  }
+  return true;
+};
+
 function App({ apiUrl }) {
   const [bins, setBins] = useState([]);
   const [selectedBinId, setSelectedBinId] = useState(null);
@@ -40,6 +50,7 @@ function App({ apiUrl }) {
   const [selectedRequest, setSelectedRequest] = useState(null);
   const [searchQuery, setSearchQuery] = useState('');
   const [isCreating, setIsCreating] = useState(false);
+  const [error, setError] = useState(null);
   const [newBinConfig, setNewBinConfig] = useState({
     name: '',
     mockStatusCode: 200,
@@ -48,9 +59,10 @@ function App({ apiUrl }) {
   const [sseStatus, setSseStatus] = useState('disconnected');
   const sseRef = useRef(null);
 
-  // Initialize session on mount
+// Initialize session on mount
   useEffect(() => {
     getSessionId(); // Ensures session ID exists
+    validateApiUrl(apiUrl); // Warn if API URL looks misconfigured
     fetchBins();
   }, []);
 
@@ -73,11 +85,18 @@ const fetchBins = async () => {
         // Handle both array response and {success, data} format
         const binsData = Array.isArray(response) ? response : (response.data || []);
         setBins(binsData);
+        setError(null); // Clear errors on success
         if (binsData.length > 0 && !selectedBinId) {
           setSelectedBinId(binsData[0].id);
         }
+      } else {
+        const errorText = await res.text();
+        setError(`Failed to fetch bins: ${res.status} ${res.statusText}`);
+        console.error('Failed to fetch bins:', res.status, errorText);
       }
     } catch (error) {
+      const errorMsg = error.message || 'Network error';
+      setError(`Failed to connect to API: ${errorMsg}. Make sure VITE_API_URL is set.`);
       console.error('Failed to fetch bins:', error);
     }
   };
@@ -258,11 +277,18 @@ const deleteBinRequests = async (binId) => {
     return `${baseUrl}/hook/${binId}`;
   };
 
-  return (
+return (
     <div className="h-screen flex bg-background overflow-hidden">
+      {/* Error Banner */}
+      {error && (
+        <div className="fixed top-0 left-0 right-0 z-50 bg-status-delete/90 text-white px-4 py-2 text-sm flex items-center justify-between">
+          <span>{error}</span>
+          <button onClick={() => setError(null)} className="ml-4 hover:opacity-80">✕</button>
+        </div>
+      )}
       {/* Left Sidebar - Bin List */}
-      <aside className="w-64 flex-shrink-0 border-r border-border bg-surface flex flex-col">
-<div className="p-4 border-b border-border flex items-center justify-between">
+      <aside className={`w-64 flex-shrink-0 border-r border-border bg-surface flex flex-col ${error ? 'pt-10' : ''}`}>
+        <div className="p-4 border-b border-border flex items-center justify-between">
           <div>
             <h1 className="text-lg font-bold text-text-primary flex items-center gap-2">
               <span className="w-3 h-3 rounded-full bg-accent-violet animate-pulse" />
