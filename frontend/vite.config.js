@@ -16,6 +16,8 @@ export default defineConfig({
       },
     },
   },
+  // Use relative paths in build for better compatibility
+  base: './',
   build: {
     outDir: 'dist',
     sourcemap: false,
