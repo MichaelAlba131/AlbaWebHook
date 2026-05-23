@@ -1,3 +1,4 @@
+import crypto from 'crypto';
 /**
  * In-Memory Store for Nexus Hook
  * Uses Map for O(1) lookups and high-speed storage
