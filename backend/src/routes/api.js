@@ -224,4 +224,68 @@ router.delete('/bins/:id/requests', (req, res) => {
   }
 });
 
+// DELETE /api/bins/:id/requests - Limpa todas as requisições de um bin específico
+router.delete('/bins/:id/requests', (req, res) => {
+  try {
+    const sessionId = getSessionId(req);
+    const bin = store.getBinByIdAndSession(req.params.id, sessionId);
+    
+    if (!bin) {
+      return res.status(404).json({
+        success: false,
+        error: 'Bin not found or not owned by session',
+      });
+    }
+    
+    // Executa a limpeza das requisições no memoryStore
+    store.clearRequests(req.params.id);
+    
+    res.json({
+      success: true,
+      message: 'All requests cleared for this bin',
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      error: 'Failed to clear requests',
+    });
+  }
+});
+
+// GET /api/bins/:id/requests/latest - Retorna a requisição mais recente do bin
+router.get('/bins/:id/requests/latest', (req, res) => {
+  try {
+    const sessionId = getSessionId(req);
+    const bin = store.getBinByIdAndSession(req.params.id, sessionId);
+    
+    if (!bin) {
+      return res.status(404).json({
+        success: false,
+        error: 'Bin not found or not owned by session',
+      });
+    }
+    
+    const requests = store.getRequests(req.params.id);
+    
+    // Se o array estiver vazio, significa que nenhum webhook chegou ainda
+    if (requests.length === 0) {
+      return res.status(404).json({
+        success: false,
+        error: 'No requests found for this bin',
+      });
+    }
+
+    // Retorna apenas a primeira posição do array (a mais recente devido ao unshift)
+    res.json({
+      success: true,
+      data: requests[0],
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      error: 'Failed to fetch latest request',
+    });
+  }
+});
+
 export default router;
